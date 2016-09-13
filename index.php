@@ -24,10 +24,11 @@
 	<div id="grid"></div>
 	<div id="mission" class="hidden-sm-up" style="position:absolute;left:60%;margin-left:-250px;top:30%; background-color:white;">
 		OBLOC: <span id="obloc"></span>
+		Distance: <span id="distance"></span>
 		<br>
 		FDC this is FO, adjust fire, over.
 		<br>
-		Grid: <span id="gridFM"></span>, elevation:____, direction:_____, over.
+		Grid: <span id="gridFM"></span>, elevation:____, direction: <span id="direction"></span>, over.
 		<br>
 		__________________________________, over.
 		<br>
@@ -135,10 +136,50 @@
       CenterControl.prototype.setCenter = function(center) {
         this.center_ = center;
       };
-	
-	
-	
-	
+
+
+
+	function distance(lat1, lon1, lat2, lon2) {
+		var R = 6371; // Radius of the earth in km
+		var dLat = (lat2 - lat1) * Math.PI / 180;  // deg2rad below
+		var dLon = (lon2 - lon1) * Math.PI / 180;
+		var a =
+			0.5 - Math.cos(dLat)/2 +
+			Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+			(1 - Math.cos(dLon))/2;
+
+		return R * 2 * Math.asin(Math.sqrt(a));
+	}
+
+
+	function radians(n) {
+		return n * (Math.PI / 180);
+	}
+	function degrees(n) {
+		return n * (180 / Math.PI);
+	}
+
+	function getBearing(startLat,startLong,endLat,endLong){
+		startLat = radians(startLat);
+		startLong = radians(startLong);
+		endLat = radians(endLat);
+		endLong = radians(endLong);
+
+		var dLong = endLong - startLong;
+
+		var dPhi = Math.log(Math.tan(endLat/2.0+Math.PI/4.0)/Math.tan(startLat/2.0+Math.PI/4.0));
+		if (Math.abs(dLong) > Math.PI){
+			if (dLong > 0.0)
+				dLong = -(2.0 * Math.PI - dLong);
+			else
+				dLong = (2.0 * Math.PI + dLong);
+		}
+
+		return (degrees(Math.atan2(dLong, dPhi)) + 360.0) % 360.0;
+	}
+
+
+
 	
 	
 	
@@ -146,18 +187,24 @@
 		var from1 = parseInt($("#from").val());
 		var to1 = parseInt($("#to").val());
 		
-		var p1 = opArray[from1];
-		var p2 = targetArray[to1];
-		
-		
-		$("#obloc").html(p1);
-		$("#gridFM").html(p2);
+		var grid1 = opArray[from1];
+		var grid2 = targetArray[to1];
+
+		var p1 = opArrayLL[from1];
+	    var p2 = targetArrayLL[to1];
+	    var d = distance(p1[0],p1[1],p2[0],p2[1]).toFixed(2);
+		var dir = getBearing(p1[0],p1[1],p2[0],p2[1]).toFixed(0)
+
+		$("#distance").html(d + " km");
+		$("#direction").html(dir);
+		$("#obloc").html(grid1);
+		$("#gridFM").html(grid2);
 		$("#mission").removeClass('hidden-sm-up');
-		
-		
-		
+
+
+
 	}
-	
+
 	
 	
 	
@@ -233,6 +280,7 @@
 		
 		function placeMarkerAndPanTo(latLng, map) {
 			if(action.localeCompare("op") == 0){
+				opArrayLL.push([latLng.lat(),latLng.lng()]);
 				var marker = new google.maps.Marker({
 					position: latLng,
 					map: map,
@@ -242,6 +290,7 @@
 			}
 			
 			else if(action.localeCompare("target") == 0){
+				targetArrayLL.push([latLng.lat(),latLng.lng()]);
 				var marker = new google.maps.Marker({
 					position: latLng,
 					map: map,
@@ -251,6 +300,7 @@
 			}
 			
 			else if(action.localeCompare("waypoint") == 0){
+				waypointArrayLL.push([latLng.lat(),latLng.lng()]);
 				var marker = new google.maps.Marker({
 					position: latLng,
 					map: map,
@@ -304,6 +354,10 @@ function getOutput(lat1,lng1) {
   });
   return false;
 }
+
+
+
+
 
 
 
